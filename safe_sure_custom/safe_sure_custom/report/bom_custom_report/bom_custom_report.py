@@ -10,12 +10,13 @@ def execute(filters=None):
         filters = {}
 
     columns = [
-        {"label": "Item", "fieldname": "item_code", "fieldtype": "HTML", "width": 250},
-        {"label": "Item Name", "fieldname": "item_name", "fieldtype": "Data", "width": 200},
+        {"label": "Item", "fieldname": "item_code", "fieldtype": "HTML", "width": 300},
+        {"label": "Item Name", "fieldname": "item_name", "fieldtype": "Data", "width": 250},
         {"label": "Make", "fieldname": "custom_brand", "fieldtype": "Data", "width": 150},
-        {"label": "Model Number", "fieldname": "custom_model", "fieldtype": "Data", "width": 150},
+        # {"label": "Model Number", "fieldname": "custom_model", "fieldtype": "Data", "width": 150},
         {"label": "Qty", "fieldname": "qty", "fieldtype": "Float", "width": 80},
-        {"label": "Unit Rate", "fieldname": "rate", "fieldtype": "Currency", "width": 100}
+        {"label": "Unit Rate", "fieldname": "rate", "fieldtype": "Currency", "width": 100},
+        {"label": "Amount", "fieldname": "amount", "fieldtype": "Currency", "width": 100}
     ]
 
     result = []
@@ -45,14 +46,15 @@ def execute(filters=None):
                     "item_code": ("&nbsp;&nbsp;" * indent) + f"<b>▶ BOM: {current_bom}</b>",
                     "item_name": "",
                     "custom_brand": "",
-                    "custom_model": "",
+                    # "custom_model": "",
                     "qty": "",
-                    "rate": ""
+                    "rate": "",
+                    "amount":""
                 })
 
                 items = frappe.get_all("BOM Item",
                     filters={"parent": current_bom},
-                    fields=["item_code", "item_name", "custom_brand", "custom_model", "qty", "rate", "bom_no"],
+                    fields=["item_code", "item_name", "custom_brand", "custom_model", "qty", "rate","amount", "bom_no"],
                     order_by="idx"
                 )
 
@@ -74,9 +76,10 @@ def execute(filters=None):
                             "item_code": item_code_display,
                             "item_name": item.item_name,
                             "custom_brand": item.custom_brand,
-                            "custom_model": item.custom_model,
+                            # "custom_model": item.custom_model,
                             "qty": item.qty,
-                            "rate": item.rate
+                            "rate": item.rate,
+                            "amount":item.amount
                         }
                     })
 
