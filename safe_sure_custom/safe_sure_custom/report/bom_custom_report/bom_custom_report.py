@@ -4,6 +4,7 @@
 # import frappe
 
 import frappe
+import json
 
 def execute(filters=None):
     if not filters:
@@ -13,7 +14,6 @@ def execute(filters=None):
         {"label": "Item", "fieldname": "item_code", "fieldtype": "HTML", "width": 300},
         {"label": "Item Name", "fieldname": "item_name", "fieldtype": "Data", "width": 250},
         {"label": "Make", "fieldname": "custom_brand", "fieldtype": "Data", "width": 150},
-        # {"label": "Model Number", "fieldname": "custom_model", "fieldtype": "Data", "width": 150},
         {"label": "Qty", "fieldname": "qty", "fieldtype": "Float", "width": 80},
         {"label": "Unit Rate", "fieldname": "rate", "fieldtype": "Currency", "width": 100},
         {"label": "Amount", "fieldname": "amount", "fieldtype": "Currency", "width": 100}
@@ -23,7 +23,6 @@ def execute(filters=None):
 
     selected_boms = filters.get("bom") or []
     if isinstance(selected_boms, str):
-        import json
         selected_boms = json.loads(selected_boms)
 
     for idx, root_bom in enumerate(selected_boms):
@@ -42,19 +41,24 @@ def execute(filters=None):
             is_first = entry.get("is_first", 0)
 
             if as_bom_header:
+                total_cost = frappe.db.get_value("BOM", current_bom, "total_cost") or 0
+
+                # Add star * only if BOM is in selected_boms
+                is_selected = current_bom in selected_boms
+                display_name = f"{'* ' if is_selected else ''}BOM: {current_bom}"
+
                 result.append({
-                    "item_code": ("&nbsp;&nbsp;" * indent) + f"<b>▶ BOM: {current_bom}</b>",
-                    "item_name": "",
+                    "item_code": ("&nbsp;&nbsp;" * indent) + f"<b>▶ {display_name}</b>",
+                    "item_name": current_bom,
                     "custom_brand": "",
-                    # "custom_model": "",
                     "qty": "",
                     "rate": "",
-                    "amount":""
+                    "amount": total_cost
                 })
 
                 items = frappe.get_all("BOM Item",
                     filters={"parent": current_bom},
-                    fields=["item_code", "item_name", "custom_brand", "custom_model", "qty", "rate","amount", "bom_no"],
+                    fields=["item_code", "item_name", "custom_brand", "custom_model", "qty", "rate", "amount", "bom_no"],
                     order_by="idx"
                 )
 
@@ -76,10 +80,9 @@ def execute(filters=None):
                             "item_code": item_code_display,
                             "item_name": item.item_name,
                             "custom_brand": item.custom_brand,
-                            # "custom_model": item.custom_model,
                             "qty": item.qty,
                             "rate": item.rate,
-                            "amount":item.amount
+                            "amount": item.amount
                         }
                     })
 
