@@ -9,12 +9,12 @@ def execute(filters=None):
 
     columns = [
         {"label": "Item", "fieldname": "item_code", "fieldtype": "HTML", "width": 300},
+        {"label": "Item Name", "fieldname": "item_name", "fieldtype": "Data", "width": 200},
+        {"label": "Description", "fieldname": "description", "fieldtype": "Data", "width": 300},
         {"label": "Make", "fieldname": "custom_brand", "fieldtype": "Data", "width": 150},
-        # {"label": "Model Number", "fieldname": "custom_model", "fieldtype": "Data", "width": 150},
         {"label": "Qty", "fieldname": "qty", "fieldtype": "Float", "width": 80},
         {"label": "Brand Discount", "fieldname": "custom_brand_discount", "fieldtype": "Float", "width": 120},
         {"label": "Standard Company Price", "fieldname": "custom_standard_company_price", "fieldtype": "Currency", "width": 150},
-        
         {"label": "Unit Rate", "fieldname": "rate", "fieldtype": "Currency", "width": 100},
         {"label": "Amount", "fieldname": "amount", "fieldtype": "Currency", "width": 100}
     ]
@@ -27,7 +27,7 @@ def execute(filters=None):
 
     quotation_items = frappe.get_all("Quotation Item",
         filters={"parent": quotation},
-        fields=["item_code", "item_name", "custom_bom", "qty", "rate", "amount"],
+        fields=["item_code", "item_name", "description", "custom_bom", "qty", "rate", "amount"],
         order_by="idx"
     )
 
@@ -38,8 +38,9 @@ def execute(filters=None):
         # Header for BOM from Quotation
         result.append({
             "item_code": f"<b>★ BOM: {q_item.custom_bom}</b>",
+            "item_name": q_item.item_name,
+            "description": q_item.description,
             "custom_brand": "",
-            "custom_model": "",
             "custom_brand_discount": "",
             "custom_standard_company_price": "",
             "qty": q_item.qty,
@@ -57,9 +58,9 @@ def add_bom_items(result, bom_name, indent=1, bold=False):
     items = frappe.get_all("BOM Item",
         filters={"parent": bom_name},
         fields=[
-            "item_code", "custom_brand", "custom_model",
-            "custom_brand_discount", "custom_standard_company_price",
-            "qty", "rate", "amount", "bom_no"
+            "item_code", "item_name", "description",
+            "custom_brand", "custom_model", "custom_brand_discount",
+            "custom_standard_company_price", "qty", "rate", "amount", "bom_no"
         ],
         order_by="idx"
     )
@@ -71,8 +72,9 @@ def add_bom_items(result, bom_name, indent=1, bold=False):
 
         result.append({
             "item_code": item_code,
+            "item_name": item.item_name,
+            "description": item.description,
             "custom_brand": item.custom_brand,
-            "custom_model": item.custom_model,
             "custom_brand_discount": item.custom_brand_discount,
             "custom_standard_company_price": item.custom_standard_company_price,
             "qty": item.qty,
@@ -84,8 +86,9 @@ def add_bom_items(result, bom_name, indent=1, bold=False):
             # Sub BOM header
             result.append({
                 "item_code": ("&nbsp;&nbsp;" * (indent + 1)) + f"<b>▶ Sub BOM: {item.bom_no}</b>",
+                "item_name": "",
+                "description": "",
                 "custom_brand": "",
-                "custom_model": "",
                 "custom_brand_discount": "",
                 "custom_standard_company_price": "",
                 "qty": "",
