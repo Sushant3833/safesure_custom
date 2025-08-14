@@ -1,31 +1,139 @@
 # Copyright (c) 2025, sushant and contributors
 # For license information, please see license.txt
 
+# import frappe
+
+# def execute(filters=None):
+#     if not filters:
+#         filters = {}
+
+#     columns = [
+#         {"label": "Item", "fieldname": "item_code", "fieldtype": "HTML", "width": 300},
+#         {"label": "Item Name", "fieldname": "item_name", "fieldtype": "Data", "width": 200},
+#         {"label": "Description", "fieldname": "description", "fieldtype": "Data", "width": 300},
+#         {"label": "Make", "fieldname": "custom_brand", "fieldtype": "Data", "width": 150},
+#         {"label": "Qty", "fieldname": "qty", "fieldtype": "Float", "width": 80},
+#         {"label": "Brand Discount", "fieldname": "custom_brand_discount", "fieldtype": "Float", "width": 120},
+#         {"label": "Standard Company Price", "fieldname": "custom_standard_company_price", "fieldtype": "Currency", "width": 150},
+#         {"label": "Unit Rate", "fieldname": "rate", "fieldtype": "Currency", "width": 100},
+#         {"label": "Amount", "fieldname": "amount", "fieldtype": "Currency", "width": 100}
+#     ]
+
+#     result = []
+
+#     quotation = filters.get("quotation")
+#     if not quotation:
+#         return columns, []
+
+#     quotation_items = frappe.get_all("Quotation Item",
+#         filters={"parent": quotation},
+#         fields=["item_code", "item_name", "description", "custom_bom", "qty", "rate", "amount"],
+#         order_by="idx"
+#     )
+
+#     for q_item in quotation_items:
+#         if not q_item.custom_bom:
+#             continue
+
+#         # Header for BOM from Quotation
+#         result.append({
+#             "item_code": f"<b>★ BOM: {q_item.custom_bom}</b>",
+#             "item_name": q_item.item_name,
+#             "description": q_item.description,
+#             "custom_brand": "",
+#             "custom_brand_discount": "",
+#             "custom_standard_company_price": "",
+#             "qty": q_item.qty,
+#             "rate": q_item.rate,
+#             "amount": q_item.amount
+#         })
+
+#         # Add its BOM items (bold), and recurse for bom_no
+#         add_bom_items(result, q_item.custom_bom, indent=1, bold=True)
+
+#     return columns, result
+
+
+# def add_bom_items(result, bom_name, indent=1, bold=False):
+#     items = frappe.get_all("BOM Item",
+#         filters={"parent": bom_name},
+#         fields=[
+#             "item_code", "item_name", "description",
+#             "custom_brand", "custom_model", "custom_brand_discount",
+#             "custom_standard_company_price", "qty", "rate", "amount", "bom_no"
+#         ],
+#         order_by="idx"
+#     )
+
+#     for item in items:
+#         item_code = ("&nbsp;&nbsp;" * indent) + item.item_code
+#         if bold:
+#             item_code = f"<b>{item_code}</b>"
+
+#         result.append({
+#             "item_code": item_code,
+#             "item_name": item.item_name,
+#             "description": item.description,
+#             "custom_brand": item.custom_brand,
+#             "custom_brand_discount": item.custom_brand_discount,
+#             "custom_standard_company_price": item.custom_standard_company_price,
+#             "qty": item.qty,
+#             "rate": item.rate,
+#             "amount": item.amount
+#         })
+
+#         if item.bom_no:
+#             # Sub BOM header
+#             result.append({
+#                 "item_code": ("&nbsp;&nbsp;" * (indent + 1)) + f"<b>▶ Sub BOM: {item.bom_no}</b>",
+#                 "item_name": "",
+#                 "description": "",
+#                 "custom_brand": "",
+#                 "custom_brand_discount": "",
+#                 "custom_standard_company_price": "",
+#                 "qty": "",
+#                 "rate": "",
+#                 "amount": ""
+#             })
+
+#             # Recurse to sub BOM
+#             add_bom_items(result, item.bom_no, indent=indent + 2, bold=False)
+
+
+# Copyright (c) 2025, sushant and contributors
+# For license information, please see license.txt
+
 import frappe
+from frappe.utils import strip_html
 
 def execute(filters=None):
-    if not filters:
-        filters = {}
+    filters = filters or {}
 
     columns = [
-        {"label": "Item", "fieldname": "item_code", "fieldtype": "HTML", "width": 300},
+        # Plain text for clean export
+        {"label": "Item", "fieldname": "item_code", "fieldtype": "Data", "width": 300},
         {"label": "Item Name", "fieldname": "item_name", "fieldtype": "Data", "width": 200},
-        {"label": "Description", "fieldname": "description", "fieldtype": "Data", "width": 300},
+        {"label": "Description", "fieldname": "description", "fieldtype": "Data", "width": 300,"hidden":1},
         {"label": "Make", "fieldname": "custom_brand", "fieldtype": "Data", "width": 150},
         {"label": "Qty", "fieldname": "qty", "fieldtype": "Float", "width": 80},
         {"label": "Brand Discount", "fieldname": "custom_brand_discount", "fieldtype": "Float", "width": 120},
         {"label": "Standard Company Price", "fieldname": "custom_standard_company_price", "fieldtype": "Currency", "width": 150},
         {"label": "Unit Rate", "fieldname": "rate", "fieldtype": "Currency", "width": 100},
-        {"label": "Amount", "fieldname": "amount", "fieldtype": "Currency", "width": 100}
+        {"label": "Amount", "fieldname": "amount", "fieldtype": "Currency", "width": 100},
+
+        # Helper columns for UI formatting (hidden)
+        {"label": "Indent", "fieldname": "indent_level", "fieldtype": "Int", "width": 1, "hidden": 1},
+        {"label": "Bold", "fieldname": "is_bold", "fieldtype": "Check", "width": 1, "hidden": 1},
     ]
 
-    result = []
+    data = []
 
     quotation = filters.get("quotation")
     if not quotation:
         return columns, []
 
-    quotation_items = frappe.get_all("Quotation Item",
+    quotation_items = frappe.get_all(
+        "Quotation Item",
         filters={"parent": quotation},
         fields=["item_code", "item_name", "description", "custom_bom", "qty", "rate", "amount"],
         order_by="idx"
@@ -35,66 +143,76 @@ def execute(filters=None):
         if not q_item.custom_bom:
             continue
 
-        # Header for BOM from Quotation
-        result.append({
-            "item_code": f"<b>★ BOM: {q_item.custom_bom}</b>",
+        # BOM header (plain text)
+        data.append({
+            "item_code": f"★ BOM: {q_item.custom_bom}",
             "item_name": q_item.item_name,
             "description": q_item.description,
             "custom_brand": "",
-            "custom_brand_discount": "",
-            "custom_standard_company_price": "",
+            "custom_brand_discount": None,
+            "custom_standard_company_price": None,
             "qty": q_item.qty,
             "rate": q_item.rate,
-            "amount": q_item.amount
+            "amount": q_item.amount,
+            "indent_level": 0,
+            "is_bold": 1
         })
 
-        # Add its BOM items (bold), and recurse for bom_no
-        add_bom_items(result, q_item.custom_bom, indent=1, bold=True)
+        # Add BOM items (bold at first level)
+        _add_bom_items(data, q_item.custom_bom, indent=1, bold=True)
 
-    return columns, result
+    # Safety: if anything sneaks in with HTML, strip for exports
+    form = getattr(frappe.local, "form_dict", {}) or {}
+    if form.get("file_format_type"):  # present during export (Excel/CSV)
+        for row in data:
+            v = row.get("item_code")
+            if isinstance(v, str):
+                row["item_code"] = strip_html(v).replace("&nbsp;", " ").replace("\xa0", " ")
+
+    return columns, data
 
 
-def add_bom_items(result, bom_name, indent=1, bold=False):
-    items = frappe.get_all("BOM Item",
+def _add_bom_items(result, bom_name, indent=1, bold=False):
+    items = frappe.get_all(
+        "BOM Item",
         filters={"parent": bom_name},
         fields=[
             "item_code", "item_name", "description",
-            "custom_brand", "custom_model", "custom_brand_discount",
+            "custom_brand", "custom_brand_discount",
             "custom_standard_company_price", "qty", "rate", "amount", "bom_no"
         ],
         order_by="idx"
     )
 
-    for item in items:
-        item_code = ("&nbsp;&nbsp;" * indent) + item.item_code
-        if bold:
-            item_code = f"<b>{item_code}</b>"
-
+    for it in items:
+        # Component row
         result.append({
-            "item_code": item_code,
-            "item_name": item.item_name,
-            "description": item.description,
-            "custom_brand": item.custom_brand,
-            "custom_brand_discount": item.custom_brand_discount,
-            "custom_standard_company_price": item.custom_standard_company_price,
-            "qty": item.qty,
-            "rate": item.rate,
-            "amount": item.amount
+            "item_code": it.item_code,
+            "item_name": it.item_name,
+            "description": it.description,
+            "custom_brand": it.custom_brand,
+            "custom_brand_discount": it.custom_brand_discount,
+            "custom_standard_company_price": it.custom_standard_company_price,
+            "qty": it.qty,
+            "rate": it.rate,
+            "amount": it.amount,
+            "indent_level": indent,
+            "is_bold": 1 if bold else 0
         })
 
-        if item.bom_no:
-            # Sub BOM header
+        # If component has a sub-BOM, insert a header row and recurse
+        if it.bom_no:
             result.append({
-                "item_code": ("&nbsp;&nbsp;" * (indent + 1)) + f"<b>▶ Sub BOM: {item.bom_no}</b>",
+                "item_code": f"▶ Sub BOM: {it.bom_no}",
                 "item_name": "",
                 "description": "",
                 "custom_brand": "",
-                "custom_brand_discount": "",
-                "custom_standard_company_price": "",
-                "qty": "",
-                "rate": "",
-                "amount": ""
+                "custom_brand_discount": None,
+                "custom_standard_company_price": None,
+                "qty": None,
+                "rate": None,
+                "amount": None,
+                "indent_level": indent + 1,
+                "is_bold": 1
             })
-
-            # Recurse to sub BOM
-            add_bom_items(result, item.bom_no, indent=indent + 2, bold=False)
+            _add_bom_items(result, it.bom_no, indent=indent + 2, bold=False)
